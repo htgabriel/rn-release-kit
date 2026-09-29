@@ -1,0 +1,72 @@
+{
+  "name": "@htgabriel/release-kit",
+  "version": "0.1.0",
+  "description": "Orquestrador de release reutilizável para apps Expo/EAS: setup guiado de credenciais, build/submit locais, versão, notas, App Review, rollout e OTA.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "release-kit": "./dist/cli/index.js"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema.json": "./schema.json"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "schema.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema:generate": "tsx scripts/generate-schema.ts",
+    "prepublishOnly": "npm run build && npm run schema:generate"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "cross-spawn": "^7.0.6",
+    "dotenv": "^16.4.5",
+    "picocolors": "^1.1.1",
+    "semver": "^7.6.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/node": "^20.14.0",
+    "@types/semver": "^7.5.8",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "packageManager": "npm@11.6.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/htgabriel/rn-release-kit.git"
+  },
+  "keywords": [
+    "expo",
+    "eas",
+    "react-native",
+    "release",
+    "app-store-connect",
+    "google-play"
+  ]
+}

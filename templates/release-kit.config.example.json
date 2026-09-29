@@ -1,0 +1,42 @@
+{
+	"appDir": ".",
+	"platforms": ["android", "ios"],
+	"locales": ["pt-BR"],
+	"notesDir": "release-notes",
+	"version": { "source": "app.json" },
+	"git": {
+		"releaseBranch": "main",
+		"tagFormat": "v{version}",
+		"requireClean": true,
+		"requireSyncedWithRemote": true,
+		"remote": "origin"
+	},
+	"channels": {
+		"release-local": {
+			"protected": false,
+			"store": false,
+			"buildProfile": "release-local",
+			"autoIncrement": false,
+			"env": {}
+		},
+		"release": {
+			"protected": false,
+			"store": true,
+			"buildProfile": "release",
+			"submitProfile": "release",
+			"env": {},
+			"ios": { "bundleId": "com.example.app.release" },
+			"android": { "package": "com.example.app.release", "testTrack": "internal", "productionTrack": "internal", "initialRollout": 1 }
+		},
+		"production": {
+			"protected": true,
+			"store": true,
+			"buildProfile": "production",
+			"submitProfile": "local-validation",
+			"env": {},
+			"ios": { "bundleId": "com.example.app", "phasedRelease": true, "automaticRelease": false },
+			"android": { "package": "com.example.app", "testTrack": "internal", "productionTrack": "production", "initialRollout": 0.1 },
+			"ota": { "channel": "production" }
+		}
+	}
+}

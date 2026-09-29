@@ -1,0 +1,308 @@
+{
+  "$ref": "#/definitions/ReleaseKitConfig",
+  "definitions": {
+    "ReleaseKitConfig": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "appDir": {
+          "type": "string",
+          "default": "."
+        },
+        "easOwner": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ]
+          },
+          "minItems": 1
+        },
+        "locales": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "default": [
+            "pt-BR"
+          ]
+        },
+        "notesDir": {
+          "type": "string",
+          "default": "release-notes"
+        },
+        "version": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": [
+                "app.json",
+                "package.json"
+              ],
+              "default": "app.json"
+            }
+          },
+          "additionalProperties": false,
+          "default": {
+            "source": "app.json"
+          }
+        },
+        "git": {
+          "type": "object",
+          "properties": {
+            "releaseBranch": {
+              "type": "string",
+              "default": "main"
+            },
+            "tagFormat": {
+              "type": "string",
+              "default": "v{version}"
+            },
+            "requireClean": {
+              "type": "boolean",
+              "default": true
+            },
+            "requireSyncedWithRemote": {
+              "type": "boolean",
+              "default": true
+            },
+            "remote": {
+              "type": "string",
+              "default": "origin"
+            }
+          },
+          "additionalProperties": false,
+          "default": {}
+        },
+        "channels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "protected": {
+                "type": "boolean",
+                "default": false
+              },
+              "store": {
+                "type": "boolean",
+                "default": true
+              },
+              "buildProfile": {
+                "type": "string"
+              },
+              "submitProfile": {
+                "type": "string"
+              },
+              "easEnvironment": {
+                "type": "string"
+              },
+              "autoIncrement": {
+                "type": "boolean",
+                "default": true
+              },
+              "sentryUploadDisabled": {
+                "type": "boolean",
+                "default": false
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "default": {}
+              },
+              "ios": {
+                "type": "object",
+                "properties": {
+                  "bundleId": {
+                    "type": "string"
+                  },
+                  "ascAppId": {
+                    "type": "string"
+                  },
+                  "appleTeamId": {
+                    "type": "string"
+                  },
+                  "phasedRelease": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "automaticRelease": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "copyright": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bundleId"
+                ],
+                "additionalProperties": false
+              },
+              "android": {
+                "type": "object",
+                "properties": {
+                  "package": {
+                    "type": "string"
+                  },
+                  "testTrack": {
+                    "type": "string",
+                    "default": "internal"
+                  },
+                  "productionTrack": {
+                    "type": "string",
+                    "default": "production"
+                  },
+                  "initialRollout": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 1
+                  }
+                },
+                "required": [
+                  "package"
+                ],
+                "additionalProperties": false
+              },
+              "ota": {
+                "type": "object",
+                "properties": {
+                  "channel": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "channel"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "buildProfile"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "toolchain": {
+          "type": "object",
+          "properties": {
+            "easCli": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "string"
+                },
+                "tested": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "min",
+                "tested"
+              ],
+              "additionalProperties": false
+            },
+            "node": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "string"
+                },
+                "tested": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "min",
+                "tested"
+              ],
+              "additionalProperties": false
+            },
+            "jdk": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "string"
+                },
+                "tested": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "min",
+                "tested"
+              ],
+              "additionalProperties": false
+            },
+            "xcode": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "string"
+                },
+                "tested": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "min",
+                "tested"
+              ],
+              "additionalProperties": false
+            },
+            "cocoapods": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "string"
+                },
+                "tested": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "min",
+                "tested"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "default": {}
+        },
+        "doctor": {
+          "type": "object",
+          "properties": {
+            "sentry": {
+              "type": "boolean",
+              "default": false
+            },
+            "expoDoctor": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": false,
+          "default": {}
+        }
+      },
+      "required": [
+        "platforms",
+        "channels"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
