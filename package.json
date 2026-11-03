@@ -1,6 +1,6 @@
 {
   "name": "@htgabriel/release-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Orquestrador de release reutilizável para apps Expo/EAS: setup guiado de credenciais, build/submit locais, versão, notas, App Review, rollout e OTA.",
   "license": "MIT",
   "type": "module",
@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "bin": {
-    "release-kit": "./dist/cli/index.js"
+    "release-kit": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
