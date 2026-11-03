@@ -34,8 +34,18 @@ interface LocalizationAttributes {
 	whatsNew?: string
 }
 
-const IN_PROGRESS_STATES = new Set(['READY_FOR_REVIEW', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'PROCESSING'])
-const TERMINAL_STATES = new Set(['COMPLETE', 'CANCELED'])
+/** READY_FOR_REVIEW fica de fora: é um rascunho, ainda não enviado à Apple. */
+const SUBMITTED_STATES = new Set(['WAITING_FOR_REVIEW', 'IN_REVIEW', 'PROCESSING'])
+const DRAFT_STATE = 'READY_FOR_REVIEW'
+/** A Apple só permite uma versão editável por plataforma. */
+const EDITABLE_VERSION_STATES = [
+	'PREPARE_FOR_SUBMISSION',
+	'READY_FOR_REVIEW',
+	'DEVELOPER_REJECTED',
+	'REJECTED',
+	'METADATA_REJECTED',
+	'INVALID_BINARY',
+]
 
 export interface ReviewSubmissionInput {
 	bundleId: string
@@ -58,7 +68,8 @@ export interface ReviewSubmissionResult {
 export async function submitForReview(client: AppStoreConnectClient, input: ReviewSubmissionInput): Promise<ReviewSubmissionResult> {
 	const app = await requireAppByBundleId(client, input.bundleId)
 
-	const inProgress = await findInProgressReviewSubmission(client, app.id)
+	const submissions = await listReviewSubmissions(client, app.id)
+	const inProgress = submissions.find(isSubmitted)
 	if (inProgress) {
 		return {
 			appId: app.id,
@@ -69,6 +80,9 @@ export async function submitForReview(client: AppStoreConnectClient, input: Revi
 			alreadyInProgress: true,
 		}
 	}
+
+	const build = await findValidBuild(client, app.id, input.versionString)
+	if (!build) fail(`Nenhum build VALID no TestFlight para a versão ${input.versionString}.`)
 
 	const version = await ensureAppStoreVersion(client, app.id, input.versionString)
 
@@ -86,17 +100,15 @@ export async function submitForReview(client: AppStoreConnectClient, input: Revi
 		},
 	})
 
-	const build = await findValidBuild(client, app.id, input.versionString)
-	if (!build) fail(`Nenhum build VALID no TestFlight para a versão ${input.versionString}.`)
-
-	await client.request('POST', `/appStoreVersions/${version.id}/relationships/build`, {
+	await client.patch(`/appStoreVersions/${version.id}/relationships/build`, {
 		data: { id: build.id, type: 'builds' },
 	})
 
-	if (input.phasedRelease) {
+	if (input.phasedRelease && !(await hasPhasedRelease(client, version.id))) {
 		await client.post('/appStoreVersionPhasedReleases', {
 			data: {
 				type: 'appStoreVersionPhasedReleases',
+				attributes: { phasedReleaseState: 'INACTIVE' },
 				relationships: { appStoreVersion: { data: { id: version.id, type: 'appStoreVersions' } } },
 			},
 		})
@@ -110,16 +122,19 @@ export async function submitForReview(client: AppStoreConnectClient, input: Revi
 		})
 	}
 
-	const submission = await createReviewSubmission(client, app.id)
-	await client.post('/reviewSubmissionItems', {
-		data: {
-			type: 'reviewSubmissionItems',
-			relationships: {
-				reviewSubmission: { data: { id: submission.id, type: 'reviewSubmissions' } },
-				appStoreVersion: { data: { id: version.id, type: 'appStoreVersions' } },
+	const draft = submissions.find((item) => item.attributes.state === DRAFT_STATE)
+	const submission = draft ?? (await createReviewSubmission(client, app.id))
+	if (!draft || !(await submissionHasVersion(client, draft.id, version.id))) {
+		await client.post('/reviewSubmissionItems', {
+			data: {
+				type: 'reviewSubmissionItems',
+				relationships: {
+					reviewSubmission: { data: { id: submission.id, type: 'reviewSubmissions' } },
+					appStoreVersion: { data: { id: version.id, type: 'appStoreVersions' } },
+				},
 			},
-		},
-	})
+		})
+	}
 	const submitted = await client.patch<JsonApiDocument<ReviewSubmissionAttributes>>(`/reviewSubmissions/${submission.id}`, {
 		data: { id: submission.id, type: 'reviewSubmissions', attributes: { submitted: true } },
 	})
@@ -145,7 +160,7 @@ export interface IosStatus {
 export async function getIosStatus(client: AppStoreConnectClient, bundleId: string, versionString: string): Promise<IosStatus> {
 	const app = await requireAppByBundleId(client, bundleId)
 	const version = await findAppStoreVersion(client, app.id, versionString)
-	const inProgress = await findInProgressReviewSubmission(client, app.id)
+	const inProgress = (await listReviewSubmissions(client, app.id)).find(isSubmitted)
 	return {
 		appId: app.id,
 		versionString,
@@ -154,17 +169,29 @@ export async function getIosStatus(client: AppStoreConnectClient, bundleId: stri
 	}
 }
 
-async function findInProgressReviewSubmission(
-	client: AppStoreConnectClient,
-	appId: string
-): Promise<{ id: string; attributes: ReviewSubmissionAttributes } | null> {
+type ReviewSubmission = JsonApiCollection<ReviewSubmissionAttributes>['data'][number]
+
+async function listReviewSubmissions(client: AppStoreConnectClient, appId: string): Promise<ReviewSubmission[]> {
 	const result = await client.get<JsonApiCollection<ReviewSubmissionAttributes>>(
 		`/apps/${appId}/reviewSubmissions?filter[platform]=IOS`
 	)
-	const active = result.data.find(
-		(item) => IN_PROGRESS_STATES.has(item.attributes.state) && !TERMINAL_STATES.has(item.attributes.state)
-	)
-	return active ?? null
+	return result.data
+}
+
+function isSubmitted(submission: ReviewSubmission): boolean {
+	return SUBMITTED_STATES.has(submission.attributes.state)
+}
+
+async function submissionHasVersion(client: AppStoreConnectClient, submissionId: string, versionId: string): Promise<boolean> {
+	const items = await client.get<{
+		data: Array<{ relationships?: { appStoreVersion?: { data?: { id: string } | null } } }>
+	}>(`/reviewSubmissions/${submissionId}/items?include=appStoreVersion&limit=200`)
+	return items.data.some((item) => item.relationships?.appStoreVersion?.data?.id === versionId)
+}
+
+async function hasPhasedRelease(client: AppStoreConnectClient, versionId: string): Promise<boolean> {
+	const result = await client.get<{ data: unknown }>(`/appStoreVersions/${versionId}/appStoreVersionPhasedRelease`)
+	return Boolean(result.data)
 }
 
 async function ensureAppStoreVersion(
@@ -174,6 +201,14 @@ async function ensureAppStoreVersion(
 ): Promise<{ id: string; attributes: AppStoreVersionAttributes }> {
 	const existing = await findAppStoreVersion(client, appId, versionString)
 	if (existing) return existing
+
+	const editable = await findEditableAppStoreVersion(client, appId)
+	if (editable) {
+		await client.patch(`/appStoreVersions/${editable.id}`, {
+			data: { id: editable.id, type: 'appStoreVersions', attributes: { versionString } },
+		})
+		return { id: editable.id, attributes: { ...editable.attributes, versionString } }
+	}
 
 	const created = await client.post<JsonApiDocument<AppStoreVersionAttributes>>('/appStoreVersions', {
 		data: {
@@ -192,6 +227,17 @@ async function findAppStoreVersion(
 ): Promise<{ id: string; attributes: AppStoreVersionAttributes } | null> {
 	const result = await client.get<JsonApiCollection<AppStoreVersionAttributes>>(
 		`/apps/${appId}/appStoreVersions?filter[versionString]=${encodeURIComponent(versionString)}&filter[platform]=IOS`
+	)
+	const [version] = result.data
+	return version ? { id: version.id, attributes: version.attributes } : null
+}
+
+async function findEditableAppStoreVersion(
+	client: AppStoreConnectClient,
+	appId: string
+): Promise<{ id: string; attributes: AppStoreVersionAttributes } | null> {
+	const result = await client.get<JsonApiCollection<AppStoreVersionAttributes>>(
+		`/apps/${appId}/appStoreVersions?filter[appStoreState]=${EDITABLE_VERSION_STATES.join(',')}&filter[platform]=IOS`
 	)
 	const [version] = result.data
 	return version ? { id: version.id, attributes: version.attributes } : null
