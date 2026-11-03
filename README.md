@@ -20,7 +20,7 @@ O wizard pede credencial após credencial — Expo/EAS, App Store Connect API Ke
 | `build --channel <c> --platform <android\|ios> [--cloud]` | `eas build` local (default) ou cloud |
 | `submit --channel <c> [--latest\|--path <arquivo>]` | `eas submit` para a faixa de teste |
 | `ship --channel <c> --platform <p>` | doctor → build → submit |
-| `promote --channel <c> [--platform]` | Play: teste → produção. Apple: cria e envia a Review Submission |
+| `promote --channel <c> [--platform]` | Play: teste → produção. Apple: reaproveita o rascunho de Review Submission (ou cria um) e envia |
 | `rollout --channel <c> --platform android --to <0-1\|complete\|halt>` | Controla o rollout percentual da Play |
 | `status --channel <c>` | Estado da review Apple e das faixas/rollout da Play |
 | `update --channel <c> [--message]` | OTA via `eas update` |

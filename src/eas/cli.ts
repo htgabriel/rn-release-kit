@@ -84,8 +84,9 @@ export function easEnvListHasKey(ctx: ReleaseKitContext, environment: string, ke
 	const result = easEnvList(ctx, environment)
 	if (ctx.dryRun) return true
 	if (result.status !== 0) return false
-	const pattern = new RegExp(`(^|\\n)${key}(\\n|$)`)
-	return pattern.test(`${result.stdout}\n${result.stderr}`)
+	return `${result.stdout}\n${result.stderr}`
+		.split(/\r?\n/)
+		.some((line) => line === key || line.startsWith(`${key}=`))
 }
 
 export function easFingerprintGenerate(ctx: ReleaseKitContext, environment: string): RunResult {
@@ -130,9 +131,12 @@ export interface EasSubmitArgs {
 	env: Record<string, string>
 }
 
+export function easSubmitCommandArgs(opts: Pick<EasSubmitArgs, 'platform' | 'submitProfile' | 'path'>): string[] {
+	return ['submit', '-p', opts.platform, '--profile', opts.submitProfile, '--path', opts.path, '--non-interactive']
+}
+
 export function easSubmit(ctx: ReleaseKitContext, opts: EasSubmitArgs): RunResult {
-	const args = ['submit', '-p', opts.platform, '--profile', opts.submitProfile, '--path', opts.path, '--non-interactive']
-	return eas(ctx, args, { inherit: true, env: opts.env })
+	return eas(ctx, easSubmitCommandArgs(opts), { inherit: true, env: opts.env })
 }
 
 export interface EasUpdateArgs {

@@ -4,7 +4,7 @@ import type { ReleaseKitContext } from '../context.js'
 import { fail, formatCommand, requireSuccess } from '../exec/run.js'
 import type { Platform, ReleaseKitConfig } from '../config/schema.js'
 import { channelOf } from '../config/schema.js'
-import { easSubmit } from '../eas/cli.js'
+import { easSubmit, easSubmitCommandArgs } from '../eas/cli.js'
 import { assertChannelOptIn, type ProtectedGateOptions } from './gate.js'
 import { findLatestMetadata, type ReleaseMetadata } from './metadata.js'
 
@@ -67,7 +67,7 @@ export function submitRelease(ctx: ReleaseKitContext, config: ReleaseKitConfig, 
 	}
 
 	if (ctx.dryRun) {
-		const command = formatCommand('eas', ['submit', '-p', platform, '--profile', submitProfile, '--path', artifactPath], channel.env)
+		const command = formatCommand('eas', easSubmitCommandArgs({ platform, submitProfile, path: artifactPath }), channel.env)
 		ctx.log.info(`[dry-run] cd ${ctx.appDir} && ${command}`)
 		return { dryRun: true, command, submitProfile, artifactPath }
 	}
